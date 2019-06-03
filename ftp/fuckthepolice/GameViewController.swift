@@ -159,8 +159,8 @@ class GameViewController: UIViewController, AVCaptureDataOutputSynchronizerDeleg
         
         if synchedDepthData.depthDataWasDropped || synchedVideoData.sampleBufferWasDropped { return }
         
-        let depthPixelBuffer = synchedDepthData.depthData.depthDataMap
-        let videoPixelBuffer = CMSampleBufferGetImageBuffer(synchedVideoData.sampleBuffer)
+        renderer.depthPixelBuffer = synchedDepthData.depthData.depthDataMap
+        renderer.videoPixelBuffer = CMSampleBufferGetImageBuffer(synchedVideoData.sampleBuffer)
         
         print("got the data!")
     }

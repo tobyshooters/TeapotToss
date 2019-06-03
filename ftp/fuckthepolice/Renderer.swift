@@ -14,7 +14,6 @@ import simd
 
 // The 256 byte aligned size of our uniform structure
 let alignedUniformsSize = (MemoryLayout<Uniforms>.size & ~0xFF) + 0x100
-
 let maxBuffersInFlight = 3
 
 enum RendererError: Error {
@@ -33,16 +32,17 @@ class Renderer: NSObject, MTKViewDelegate {
     let inFlightSemaphore = DispatchSemaphore(value: maxBuffersInFlight)
     
     var uniformBufferOffset = 0
-    
     var uniformBufferIndex = 0
-    
     var uniforms: UnsafeMutablePointer<Uniforms>
     
     var projectionMatrix: matrix_float4x4 = matrix_float4x4()
-    
     var rotation: Float = 0
     
     var mesh: MTKMesh
+    var textureCache: CVMetalTextureCache!
+
+    var videoPixelBuffer : CVPixelBuffer?
+    var depthPixelBuffer : CVPixelBuffer?
     
     init?(metalKitView: MTKView) {
         self.device = metalKitView.device!
@@ -95,11 +95,12 @@ class Renderer: NSObject, MTKViewDelegate {
         
         super.init()
         
+        if CVMetalTextureCacheCreate(kCFAllocatorDefault, nil, device, nil, &textureCache) != kCVReturnSuccess { return }
     }
     
     class func buildMetalVertexDescriptor() -> MTLVertexDescriptor {
         // Creete a Metal vertex descriptor specifying how vertices will by laid out for input into our render
-        //   pipeline and how we'll layout our Model IO vertices
+        // pipeline and how we'll layout our Model IO vertices
         
         let mtlVertexDescriptor = MTLVertexDescriptor()
         
@@ -171,8 +172,7 @@ class Renderer: NSObject, MTKViewDelegate {
         return try MTKMesh(mesh:mdlMesh, device:device)
     }
     
-    class func loadTexture(device: MTLDevice,
-                           textureName: String) throws -> MTLTexture {
+    class func loadTexture(device: MTLDevice, textureName: String) throws -> MTLTexture {
         /// Load texture data with optimal parameters for sampling
         
         let textureLoader = MTKTextureLoader(device: device)
@@ -209,6 +209,28 @@ class Renderer: NSObject, MTKViewDelegate {
         let viewMatrix = matrix4x4_translation(0.0, 0.0, -8.0)
         uniforms[0].modelViewMatrix = simd_mul(viewMatrix, modelMatrix)
         rotation += 0.01
+    }
+    
+    private func textureFromBuffer(buffer : CVPixelBuffer,
+                                   planeIndex : Int = 0,
+                                   pixelFormat : MTLPixelFormat = .bgra8Unorm) -> MTLTexture? {
+        
+        let width = CVPixelBufferGetWidth(buffer)
+        let height = CVPixelBufferGetHeight(buffer)
+        
+        var imageTexture: CVMetalTexture?
+        let result = CVMetalTextureCacheCreateTextureFromImage(
+            kCFAllocatorDefault, textureCache, buffer, nil, pixelFormat, width, height, planeIndex, &imageTexture)
+        
+        guard
+            let unwrappedImageTexture = imageTexture,
+            let texture = CVMetalTextureGetTexture(unwrappedImageTexture),
+            result == kCVReturnSuccess
+            else {
+                return nil
+        }
+
+        return texture
     }
     
     func draw(in view: MTKView) {
@@ -260,7 +282,11 @@ class Renderer: NSObject, MTKViewDelegate {
                     }
                 }
                 
-                renderEncoder.setFragmentTexture(colorMap, index: TextureIndex.color.rawValue)
+                if let buffer = depthPixelBuffer,let imageTexture = textureFromBuffer(buffer: buffer) {
+                    renderEncoder.setFragmentTexture(imageTexture, index: TextureIndex.color.rawValue)
+                } else {
+                    renderEncoder.setFragmentTexture(colorMap, index: TextureIndex.color.rawValue)
+                }
                 
                 for submesh in mesh.submeshes {
                     renderEncoder.drawIndexedPrimitives(type: submesh.primitiveType,
