@@ -282,7 +282,7 @@ class Renderer: NSObject, MTKViewDelegate {
                     }
                 }
                 
-                if let buffer = depthPixelBuffer,let imageTexture = textureFromBuffer(buffer: buffer) {
+                if let buffer = videoPixelBuffer,let imageTexture = textureFromBuffer(buffer: buffer) {
                     renderEncoder.setFragmentTexture(imageTexture, index: TextureIndex.color.rawValue)
                 } else {
                     renderEncoder.setFragmentTexture(colorMap, index: TextureIndex.color.rawValue)

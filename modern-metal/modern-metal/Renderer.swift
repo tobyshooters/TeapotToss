@@ -23,6 +23,7 @@ class Renderer: NSObject, MTKViewDelegate {
     let device: MTLDevice
     let commandQueue: MTLCommandQueue
     var renderPipeline: MTLRenderPipelineState
+    var cameraPipeline: MTLRenderPipelineState
     let depthStencilState: MTLDepthStencilState
     let samplerState: MTLSamplerState
     let vertexDescriptor: MDLVertexDescriptor
@@ -38,10 +39,17 @@ class Renderer: NSObject, MTKViewDelegate {
     init(view: MTKView, device: MTLDevice) {
         self.device = device
         commandQueue = device.makeCommandQueue()!
+
+        // Graphics
         vertexDescriptor = Renderer.buildVertexDescriptor()
         renderPipeline = Renderer.buildPipeline(device: device, view: view, vertexDescriptor: vertexDescriptor)
         samplerState = Renderer.buildSamplerState(device: device)
         depthStencilState = Renderer.buildDepthStencilState(device: device)
+
+        // Camera
+        cameraPipeline = Renderer.buildCameraPipeline(device: device, view: view)
+
+        // Construct scene
         scene = Renderer.buildScene(device: device, vertexDescriptor: vertexDescriptor, view: view)
         super.init()
     }
@@ -165,6 +173,29 @@ class Renderer: NSObject, MTKViewDelegate {
             fatalError("Could not create render pipeline state object: \(error)")
         }
     }
+
+    static func buildCameraPipeline(device: MTLDevice, view: MTKView) -> MTLRenderPipelineState {
+        guard let library = device.makeDefaultLibrary() else {
+            fatalError("Could not load default library from main bundle")
+        }
+        
+        let vertexFunction = library.makeFunction(name: "vertex_camera_main")
+        let fragmentFunction = library.makeFunction(name: "fragment_camera_main")
+        
+        let pipelineDescriptor = MTLRenderPipelineDescriptor()
+        pipelineDescriptor.vertexFunction = vertexFunction
+        pipelineDescriptor.fragmentFunction = fragmentFunction
+        
+        pipelineDescriptor.sampleCount = 1
+        pipelineDescriptor.colorAttachments[0].pixelFormat = view.colorPixelFormat
+        pipelineDescriptor.depthAttachmentPixelFormat = .invalid
+
+        do {
+            return try device.makeRenderPipelineState(descriptor: pipelineDescriptor)
+        } catch {
+            fatalError("Could not create render pipeline state object: \(error)")
+        }
+    }
     
     
     func update(_ view: MTKView) {
@@ -186,7 +217,6 @@ class Renderer: NSObject, MTKViewDelegate {
         
         if let canvas = scene.nodeNamed("Canvas") {
             canvas.modelMatrix = float4x4(translationBy: float3(0, 0, -10)) * float4x4(rotationAbout: float3(1.0, 0, 0), by: Float.pi / 2)
-            
         }
     }
     
@@ -201,11 +231,21 @@ class Renderer: NSObject, MTKViewDelegate {
             renderPassDescriptor.colorAttachments[0].clearColor = MTLClearColorMake(0.63, 0.81, 1.0, 1.0)
             let commandEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: renderPassDescriptor)!
             commandEncoder.setFrontFacing(.counterClockwise)
+
+            // Draw Camera
+            commandEncoder.setCullMode(.none)
+            commandEncoder.setRenderPipelineState(cameraPipeline)
+            commandEncoder.setFragmentTexture(scene.rootNode.children[0].material.baseColorTexture, index: 0)
+            commandEncoder.drawPrimitives(type: .triangleStrip, vertexStart: 0, vertexCount: 4)
+
+            // Draw Graphics
             commandEncoder.setCullMode(.back)
             commandEncoder.setDepthStencilState(depthStencilState)
             commandEncoder.setRenderPipelineState(renderPipeline)
             commandEncoder.setFragmentSamplerState(samplerState, index: 0)
             drawNodeRecursive(scene.rootNode, parentTransform: matrix_identity_float4x4, commandEncoder: commandEncoder)
+
+            // Commit
             commandEncoder.endEncoding()
             commandBuffer.present(drawable)
             commandBuffer.commit()
