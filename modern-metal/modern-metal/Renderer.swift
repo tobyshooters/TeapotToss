@@ -42,11 +42,11 @@ class Renderer: NSObject, MTKViewDelegate {
         renderPipeline = Renderer.buildPipeline(device: device, view: view, vertexDescriptor: vertexDescriptor)
         samplerState = Renderer.buildSamplerState(device: device)
         depthStencilState = Renderer.buildDepthStencilState(device: device)
-        scene = Renderer.buildScene(device: device, vertexDescriptor: vertexDescriptor)
+        scene = Renderer.buildScene(device: device, vertexDescriptor: vertexDescriptor, view: view)
         super.init()
     }
     
-    static func buildScene(device: MTLDevice, vertexDescriptor: MDLVertexDescriptor) -> Scene {
+    static func buildScene(device: MTLDevice, vertexDescriptor: MDLVertexDescriptor, view: MTKView) -> Scene {
         let bufferAllocator = MTKMeshBufferAllocator(device: device)
         let textureLoader = MTKTextureLoader(device: device)
         let options: [MTKTextureLoader.Option : Any] = [.generateMipmaps : true, .SRGB : true]
@@ -59,6 +59,7 @@ class Renderer: NSObject, MTKViewDelegate {
         let light2 = Light(worldPosition: float3( 0, -5, 0), color: float3(0.3, 0.3, 0.3))
         scene.lights = [ light0, light1, light2 ]
 
+        // Teapot
         let bob = Node(name: "Bob")
         let bobMaterial = Material()
         let bobBaseColorTexture = try? textureLoader.newTexture(name: "bob_baseColor",
@@ -70,32 +71,39 @@ class Renderer: NSObject, MTKViewDelegate {
         bobMaterial.specularColor = float3(0.8, 0.8, 0.8)
         bob.material = bobMaterial
 
-        let bobURL = Bundle.main.url(forResource: "bob", withExtension: "obj")!
+        let bobURL = Bundle.main.url(forResource: "teapot", withExtension: "obj")!
         let bobAsset = MDLAsset(url: bobURL, vertexDescriptor: vertexDescriptor, bufferAllocator: bufferAllocator)
         bob.mesh = try! MTKMesh.newMeshes(asset: bobAsset, device: device).metalKitMeshes.first!
-
+        
         scene.rootNode.children.append(bob)
 
-        let blubMaterial = Material()
-        let blubBaseColorTexture = try? textureLoader.newTexture(name: "blub_baseColor",
-                                                                 scaleFactor: 1.0,
-                                                                 bundle: nil,
-                                                                 options: options)
-        blubMaterial.baseColorTexture = blubBaseColorTexture
-        blubMaterial.specularPower = 40
-        blubMaterial.specularColor = float3(0.8, 0.8, 0.8)
+        // Canvas
+        let canvas = Node(name: "Canvas")
+        let canvasMaterial = Material()
+        let canvasBaseColorTexture = try? textureLoader.newTexture(name: "blub_baseColor",
+                                                                   scaleFactor: 1.0,
+                                                                   bundle: nil,
+                                                                   options: options)
+        canvasMaterial.baseColorTexture = canvasBaseColorTexture
+        canvasMaterial.specularPower = 100
+        canvasMaterial.specularColor = float3(0.8, 0.8, 0.8)
+        canvas.material = canvasMaterial
+        let mdlMesh = MDLMesh.newPlane(withDimensions: float2(1, 1),
+                                       segments: uint2(1, 1),
+                                       geometryType: MDLGeometryType.triangles,
+                                       allocator: bufferAllocator)
         
-        let blubURL = Bundle.main.url(forResource: "blub", withExtension: "obj")!
-        let blubAsset = MDLAsset(url: blubURL, vertexDescriptor: vertexDescriptor, bufferAllocator: bufferAllocator)
-        let blubMesh = try! MTKMesh.newMeshes(asset: blubAsset, device: device).metalKitMeshes.first!
-
-        for i in 1...fishCount {
-            let blub = Node(name: "Blub \(i)")
-            blub.material = blubMaterial
-            blub.mesh = blubMesh
-            bob.children.append(blub)
+        guard let attributes = vertexDescriptor.attributes as? [MDLVertexAttribute] else {
+            return scene
         }
         
+        attributes[0].name = MDLVertexAttributePosition
+        attributes[2].name = MDLVertexAttributeTextureCoordinate
+        
+        mdlMesh.vertexDescriptor = vertexDescriptor
+        canvas.mesh = try! MTKMesh(mesh:mdlMesh, device:device)
+        scene.rootNode.children.append(canvas)
+
         return scene
     }
     
@@ -162,37 +170,23 @@ class Renderer: NSObject, MTKViewDelegate {
     func update(_ view: MTKView) {
         time += 1 / Float(view.preferredFramesPerSecond)
         
-        cameraWorldPosition = float3(0, 0, 2)
-        viewMatrix = float4x4(translationBy: -cameraWorldPosition) * float4x4(rotationAbout: float3(1, 0, 0), by: .pi / 6)
+        cameraWorldPosition = float3(0, 0, 0)
+        viewMatrix = float4x4(translationBy: cameraWorldPosition)
         
         let aspectRatio = Float(view.drawableSize.width / view.drawableSize.height)
+        print(view.drawableSize.width)
+        print(view.drawableSize.height)
         projectionMatrix = float4x4(perspectiveProjectionFov: Float.pi / 6, aspectRatio: aspectRatio, nearZ: 0.1, farZ: 100)
         
         let angle = -time
-        scene.rootNode.modelMatrix = float4x4(rotationAbout: float3(0, 1, 0), by: angle)
         
         if let bob = scene.nodeNamed("Bob") {
-            bob.modelMatrix = float4x4(translationBy: float3(0, 0.015 * sin(time * 5), 0))
+            bob.modelMatrix = float4x4(translationBy: float3(0, angle, -5))
         }
         
-        let blubBaseTransform = float4x4(rotationAbout: float3(0, 0, 1), by: -.pi / 2) *
-                                float4x4(scaleBy: 0.25) *
-                                float4x4(rotationAbout: float3(0, 1, 0), by: -.pi / 2)
-        
-        let fishCount = Renderer.fishCount
-        for i in 1...fishCount {
-            if let blub = scene.nodeNamed("Blub \(i)") {
-                let pivotPosition = float3(0.4, 0, 0)
-                let rotationOffset = float3(0.4, 0, 0)
-                let rotationSpeed = Float(0.3)
-                let rotationAngle = 2 * Float.pi * Float(rotationSpeed * time) + (2 * Float.pi / Float(fishCount) * Float(i - 1))
-                let horizontalAngle = 2 * .pi / Float(fishCount) * Float(i - 1)
-                blub.modelMatrix = float4x4(rotationAbout: float3(0, 1, 0), by: horizontalAngle) *
-                                   float4x4(translationBy: rotationOffset) *
-                                   float4x4(rotationAbout: float3(0, 0, 1), by: rotationAngle) *
-                                   float4x4(translationBy: pivotPosition) *
-                                   blubBaseTransform
-            }
+        if let canvas = scene.nodeNamed("Canvas") {
+            canvas.modelMatrix = float4x4(translationBy: float3(0, 0, -10)) * float4x4(rotationAbout: float3(1.0, 0, 0), by: Float.pi / 2)
+            
         }
     }
     
