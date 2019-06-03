@@ -34,7 +34,9 @@ class Renderer: NSObject, MTKViewDelegate {
     var viewMatrix = matrix_identity_float4x4
     var projectionMatrix = matrix_identity_float4x4
     
-    static let fishCount = 12
+    var textureCache: CVMetalTextureCache!
+    var videoPixelBuffer : CVPixelBuffer?
+    var depthPixelBuffer : CVPixelBuffer?
 
     init(view: MTKView, device: MTLDevice) {
         self.device = device
@@ -52,6 +54,8 @@ class Renderer: NSObject, MTKViewDelegate {
         // Construct scene
         scene = Renderer.buildScene(device: device, vertexDescriptor: vertexDescriptor, view: view)
         super.init()
+
+        if CVMetalTextureCacheCreate(kCFAllocatorDefault, nil, device, nil, &textureCache) != kCVReturnSuccess { return }
     }
     
     static func buildScene(device: MTLDevice, vertexDescriptor: MDLVertexDescriptor, view: MTKView) -> Scene {
@@ -188,7 +192,7 @@ class Renderer: NSObject, MTKViewDelegate {
         
         pipelineDescriptor.sampleCount = 1
         pipelineDescriptor.colorAttachments[0].pixelFormat = view.colorPixelFormat
-        pipelineDescriptor.depthAttachmentPixelFormat = .invalid
+        pipelineDescriptor.depthAttachmentPixelFormat = view.depthStencilPixelFormat
 
         do {
             return try device.makeRenderPipelineState(descriptor: pipelineDescriptor)
@@ -205,8 +209,6 @@ class Renderer: NSObject, MTKViewDelegate {
         viewMatrix = float4x4(translationBy: cameraWorldPosition)
         
         let aspectRatio = Float(view.drawableSize.width / view.drawableSize.height)
-        print(view.drawableSize.width)
-        print(view.drawableSize.height)
         projectionMatrix = float4x4(perspectiveProjectionFov: Float.pi / 6, aspectRatio: aspectRatio, nearZ: 0.1, farZ: 100)
         
         let angle = -time
@@ -235,7 +237,12 @@ class Renderer: NSObject, MTKViewDelegate {
             // Draw Camera
             commandEncoder.setCullMode(.none)
             commandEncoder.setRenderPipelineState(cameraPipeline)
-            commandEncoder.setFragmentTexture(scene.rootNode.children[0].material.baseColorTexture, index: 0)
+
+            if let buffer = videoPixelBuffer,let imageTexture = textureFromBuffer(buffer: buffer) {
+                commandEncoder.setFragmentTexture(imageTexture, index: 0)
+            } else {
+                commandEncoder.setFragmentTexture(scene.rootNode.children[0].material.baseColorTexture, index: 0)
+            }
             commandEncoder.drawPrimitives(type: .triangleStrip, vertexStart: 0, vertexCount: 4)
 
             // Draw Graphics
@@ -289,5 +296,27 @@ class Renderer: NSObject, MTKViewDelegate {
         for child in node.children {
             drawNodeRecursive(child, parentTransform: modelMatrix, commandEncoder: commandEncoder)
         }
+    }
+
+    private func textureFromBuffer(buffer : CVPixelBuffer,
+                                   planeIndex : Int = 0,
+                                   pixelFormat : MTLPixelFormat = .bgra8Unorm) -> MTLTexture? {
+        
+        let width = CVPixelBufferGetWidth(buffer)
+        let height = CVPixelBufferGetHeight(buffer)
+        
+        var imageTexture: CVMetalTexture?
+        let result = CVMetalTextureCacheCreateTextureFromImage(
+            kCFAllocatorDefault, textureCache, buffer, nil, pixelFormat, width, height, planeIndex, &imageTexture)
+        
+        guard
+            let unwrappedImageTexture = imageTexture,
+            let texture = CVMetalTextureGetTexture(unwrappedImageTexture),
+            result == kCVReturnSuccess
+            else {
+                return nil
+        }
+
+        return texture
     }
 }
