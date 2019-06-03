@@ -89,33 +89,6 @@ class Renderer: NSObject, MTKViewDelegate {
         
         scene.rootNode.children.append(bob)
 
-        // Canvas
-        let canvas = Node(name: "Canvas")
-        let canvasMaterial = Material()
-        let canvasBaseColorTexture = try? textureLoader.newTexture(name: "blub_baseColor",
-                                                                   scaleFactor: 1.0,
-                                                                   bundle: nil,
-                                                                   options: options)
-        canvasMaterial.baseColorTexture = canvasBaseColorTexture
-        canvasMaterial.specularPower = 100
-        canvasMaterial.specularColor = float3(0.8, 0.8, 0.8)
-        canvas.material = canvasMaterial
-        let mdlMesh = MDLMesh.newPlane(withDimensions: float2(1, 1),
-                                       segments: uint2(1, 1),
-                                       geometryType: MDLGeometryType.triangles,
-                                       allocator: bufferAllocator)
-        
-        guard let attributes = vertexDescriptor.attributes as? [MDLVertexAttribute] else {
-            return scene
-        }
-        
-        attributes[0].name = MDLVertexAttributePosition
-        attributes[2].name = MDLVertexAttributeTextureCoordinate
-        
-        mdlMesh.vertexDescriptor = vertexDescriptor
-        canvas.mesh = try! MTKMesh(mesh:mdlMesh, device:device)
-        scene.rootNode.children.append(canvas)
-
         return scene
     }
     
@@ -214,12 +187,10 @@ class Renderer: NSObject, MTKViewDelegate {
         let angle = -time
         
         if let bob = scene.nodeNamed("Bob") {
-            bob.modelMatrix = float4x4(translationBy: float3(0, angle, -5))
+            bob.modelMatrix = float4x4(translationBy: float3(0, 0, -5))
         }
         
-        if let canvas = scene.nodeNamed("Canvas") {
-            canvas.modelMatrix = float4x4(translationBy: float3(0, 0, -10)) * float4x4(rotationAbout: float3(1.0, 0, 0), by: Float.pi / 2)
-        }
+
     }
     
     func mtkView(_ view: MTKView, drawableSizeWillChange size: CGSize) {

@@ -2,6 +2,7 @@
 import UIKit
 import MetalKit
 import ModelIO
+import AVFoundation
 
 class ViewController: UIViewController, AVCaptureDataOutputSynchronizerDelegate {
     
