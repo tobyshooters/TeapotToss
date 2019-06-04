@@ -9,6 +9,9 @@ class ViewController: UIViewController, AVCaptureDataOutputSynchronizerDelegate 
     var mtkView: MTKView!
     var renderer: Renderer!
 
+    @IBAction func rotationSwitch(_ sender: Any) {
+    }
+    
     private let deviceDiscovery = AVCaptureDevice.DiscoverySession(
         deviceTypes: [.builtInDualCamera,
                       .builtInTrueDepthCamera],

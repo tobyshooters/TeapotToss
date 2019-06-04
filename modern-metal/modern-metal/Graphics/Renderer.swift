@@ -185,7 +185,7 @@ class Renderer: NSObject, MTKViewDelegate {
         projectionMatrix = float4x4(perspectiveProjectionFov: Float.pi / 6, aspectRatio: aspectRatio, nearZ: 0.1, farZ: 100)
         
         if let bob = scene.nodeNamed("Bob") {
-            bob.modelMatrix = float4x4(translationBy: float3(0, 0, -3))
+            bob.modelMatrix = float4x4(translationBy: float3(0, 0, -3)) * float4x4(rotationAbout: float3(1, 0, 0), by: Float.pi/6) * float4x4(rotationAbout: float3(0.5, 1, 0), by: -time)
         }
     }
     
