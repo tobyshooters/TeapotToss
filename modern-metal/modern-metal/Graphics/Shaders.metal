@@ -77,6 +77,7 @@ struct FragmentUniforms {
     float3 specularColor;
     float specularPower;
     Light lights[LightCount];
+    float bob_z;
 };
 
 vertex VertexOut vertex_main(VertexIn vertexIn [[stage_in]],
@@ -104,10 +105,12 @@ fragment float4 fragment_main(VertexOut fragmentIn [[stage_in]],
     float worldDepth = depthTexture.sample(textureSampler, fragmentIn.camCoords).r;
     float scaledDepth = clamp(3 * worldDepth, 0, 1);
     float depth = floor(10 * scaledDepth) / 10;
+    // range 0 to 1
+    float bob_z = uniforms.bob_z;
     
     float3 baseColor;
 
-    if (depth > 0.5) {
+    if (depth > bob_z) {
         baseColor = baseColorTexture.sample(textureSampler, fragmentIn.camCoords).rgb;
     } else {
         baseColor = imageTexture.sample(textureSampler, fragmentIn.camCoords).rgb;

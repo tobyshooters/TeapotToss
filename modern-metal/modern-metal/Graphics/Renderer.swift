@@ -17,6 +17,7 @@ struct FragmentUniforms {
     var light0 = Light()
     var light1 = Light()
     var light2 = Light()
+    var bob_z = Float()
 }
 
 class Renderer: NSObject, MTKViewDelegate {
@@ -30,6 +31,14 @@ class Renderer: NSObject, MTKViewDelegate {
     let scene: Scene
     
     var time: Float = 0
+    var startTime: Float = 0
+    var v_x: Float = 0
+    var v_y: Float = 0
+    var bob_x: Float = -3
+    var bob_y: Float = -0.5
+    let g: Float = -3;
+    let bob_x0: Float = -3
+    let bob_y0: Float = -0.5
     var cameraWorldPosition = float3(0, 0, 2)
     var viewMatrix = matrix_identity_float4x4
     var projectionMatrix = matrix_identity_float4x4
@@ -174,6 +183,16 @@ class Renderer: NSObject, MTKViewDelegate {
         }
     }
     
+    func toss() {
+        if (bob_x == bob_x0) {
+            v_x = -3;
+            v_y = 4;
+            startTime = time;
+        } else {
+            bob_x = bob_x0;
+            bob_y = bob_y0;
+        }
+    }
     
     func update(_ view: MTKView) {
         time += 1 / Float(view.preferredFramesPerSecond)
@@ -184,8 +203,23 @@ class Renderer: NSObject, MTKViewDelegate {
         let aspectRatio = Float(view.drawableSize.width / view.drawableSize.height)
         projectionMatrix = float4x4(perspectiveProjectionFov: Float.pi / 6, aspectRatio: aspectRatio, nearZ: 0.1, farZ: 100)
         
+        // depth ranges from -3 to -7.0499964
+        let deltaT: Float = time - startTime
+        if (v_x != 0) {
+            bob_x = bob_x0 + v_x * deltaT
+            bob_y = bob_y0 + v_y * deltaT + g * deltaT * deltaT
+            
+            if (bob_y < bob_y0) {
+                v_x = 0
+                v_y = 0
+                print(bob_x)
+            }
+        }
+        
+        
+        
         if let bob = scene.nodeNamed("Bob") {
-            bob.modelMatrix = float4x4(translationBy: float3(0, 0, -3)) * float4x4(rotationAbout: float3(1, 0, 0), by: Float.pi/6) * float4x4(rotationAbout: float3(0.5, 1, 0), by: -time)
+            bob.modelMatrix = float4x4(translationBy: float3(0, bob_y, bob_x)) * float4x4(rotationAbout: float3(1, 0, 0), by: Float.pi/6) * float4x4(rotationAbout: float3(0.5, 1, 0), by: -time)
         }
     }
     
@@ -253,9 +287,13 @@ class Renderer: NSObject, MTKViewDelegate {
                                                     specularPower: node.material.specularPower,
                                                     light0: scene.lights[0],
                                                     light1: scene.lights[1],
-                                                    light2: scene.lights[2])
+                                                    light2: scene.lights[2],
+                                                    bob_z: ((-bob_x - 3) / 4.1) / 5 + 0.4
+                                                   )
             
-            commandEncoder.setFragmentBytes(&fragmentUniforms, length: MemoryLayout<FragmentUniforms>.size, index: 0)
+            print(((-bob_x - 3) / 4.1) / 5 + 0.4 )
+            
+            commandEncoder.setFragmentBytes(&fragmentUniforms, length: 176, index: 0) // FIXME MemoryLayout<FragmentUniforms>.size
             commandEncoder.setFragmentTexture(baseColorTexture, index: 2)
 
             let vertexBuffer = mesh.vertexBuffers.first!

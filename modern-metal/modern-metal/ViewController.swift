@@ -49,6 +49,15 @@ class ViewController: UIViewController, AVCaptureDataOutputSynchronizerDelegate 
         sessionQueue.async {
             self.configureAvSession()
         }
+        
+        let tapGesture = UITapGestureRecognizer(target: self, action: #selector(ViewController.handleTap(gestureRecognize:)))
+        view.addGestureRecognizer(tapGesture)
+    }
+    
+    @objc
+    func handleTap(gestureRecognize: UITapGestureRecognizer) {
+        print("TAP")
+        renderer.toss()
     }
 
     override func viewWillAppear(_ animated: Bool) {
