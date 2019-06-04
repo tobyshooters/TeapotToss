@@ -7,6 +7,7 @@
 //
 
 import AVFoundation
+import MetalKit
 
 extension AVDepthData {
     
@@ -21,5 +22,14 @@ extension AVDepthData {
             return self
         }
         return converting(toDepthDataType: targetType)
+    }
+}
+
+extension CIImage {
+    func applyBlurAndGamma() -> CIImage {
+        return clampedToExtent()
+            .applyingFilter("CIGaussianBlur", parameters: ["inputRadius": 3.0])
+            .applyingFilter("CIGammaAdjust", parameters: ["inputPower": 0.5])
+            .cropped(to: extent)
     }
 }

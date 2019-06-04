@@ -146,31 +146,11 @@ class ViewController: UIViewController, AVCaptureDataOutputSynchronizerDelegate 
 
         // print(data.depthDataType) => kCVPixelFormatType_DepthFloat16
         let data: AVDepthData = synchedDepthData.depthData.convertToDepth()
-        renderer.depthPixelBuffer = data.depthDataMap
+        let depthImage = CIImage(cvPixelBuffer: data.depthDataMap, options: [:])
+        depthImage.applyBlurAndGamma()
+
+        renderer.depthPixelBuffer = depthImage.pixelBuffer
         renderer.videoPixelBuffer = CMSampleBufferGetImageBuffer(synchedVideoData.sampleBuffer)
-
-        if let depthPixelBuffer = renderer.depthPixelBuffer {
-            if let videoPixelBuffer = renderer.videoPixelBuffer {
-
-                let videoWidth = CVPixelBufferGetWidth(videoPixelBuffer)
-                let depthWidth = CVPixelBufferGetWidth(depthPixelBuffer)
-                let scale = CGFloat(depthWidth) / CGFloat(videoWidth)
-
-                let pixelX = Int((10 * scale).rounded());
-                let pixelY = Int((10 * scale).rounded());
-
-                CVPixelBufferLockBaseAddress(depthPixelBuffer, .readOnly)
-
-                let baseAddress = CVPixelBufferGetBaseAddress(depthPixelBuffer)!
-                let bytesPerRow = CVPixelBufferGetBytesPerRow(depthPixelBuffer)
-                let buffer = baseAddress.assumingMemoryBound(to: Float32.self)
-                print(buffer[pixelX * bytesPerRow + pixelY])
-
-                CVPixelBufferUnlockBaseAddress(depthPixelBuffer, .readOnly)
-            }
-        }
-        
-        print("got the data!")
     }
 }
 

@@ -31,6 +31,14 @@ fragment half4 fragment_camera_main(TextureMappingVertex mappingVertex [[ stage_
                                     texture2d<float, access::sample> texture [[ texture(0) ]]) {
     constexpr sampler s(address::clamp_to_edge, filter::linear);
     return half4(texture.sample(s, mappingVertex.textureCoordinate));
+    
+    if (mappingVertex.textureCoordinate.y > 0.8) {
+        half c = floor(10 * mappingVertex.textureCoordinate.x) / 10;
+        return half4(c, c, c, 1.0);
+    }
+    
+    half d = texture.sample(s, mappingVertex.textureCoordinate).r;
+    return half4(d, d, d, 1.0);
 }
 
 // GRAPHICS SHADERS
@@ -94,16 +102,18 @@ fragment float4 fragment_main(VertexOut fragmentIn [[stage_in]],
                               sampler textureSampler [[sampler(0)]])
 {
     float worldDepth = depthTexture.sample(textureSampler, fragmentIn.camCoords).r;
+    float scaledDepth = clamp(3 * worldDepth, 0, 1);
+    float depth = floor(10 * scaledDepth) / 10;
+    
+    float3 baseColor;
 
-//    if (worldDepth < (-fragmentIn.worldPosition.z / 10)) {
-//    if (worldDepth < 0.1) {
-    if (true) {
-        // Sample Camera Texture
-        float3 imageColor = depthTexture.sample(textureSampler, fragmentIn.camCoords).rgb;
-        return float4(imageColor, 1.0);
+    if (depth > 0.5) {
+        baseColor = baseColorTexture.sample(textureSampler, fragmentIn.camCoords).rgb;
+    } else {
+        baseColor = imageTexture.sample(textureSampler, fragmentIn.camCoords).rgb;
+        return float4(baseColor, 1.0);
     }
-
-    float3 baseColor = baseColorTexture.sample(textureSampler, fragmentIn.camCoords).rgb;
+    
     float3 specularColor = uniforms.specularColor;
     
     float3 N = normalize(fragmentIn.worldNormal);
