@@ -1,6 +1,7 @@
-# AR Occlusion in Metal
+# iOS AR Occlusion in Metal
+Extract image and depth buffer from `AVCaptureSession` and pass into Metal shader as texture.
 
-![](https://media.giphy.com/media/LVsF3VQGjSWV52IKgn/source.mp4)
+![](https://media.giphy.com/media/LVsF3VQGjSWV52IKgn/giphy.gif)
 
 ### What we wanted to do
 
