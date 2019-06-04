@@ -219,7 +219,7 @@ class Renderer: NSObject, MTKViewDelegate {
             }
 
             if let buffer = depthPixelBuffer,
-               let imageTexture = textureFromBuffer(buffer: buffer, textureCache: depthTextureCache, pixelFormat: .a8Unorm)
+               let imageTexture = textureFromBuffer(buffer: buffer, textureCache: depthTextureCache, pixelFormat: .r16Unorm)
             {
                 commandEncoder.setFragmentTexture(imageTexture, index: 1)
             } else {

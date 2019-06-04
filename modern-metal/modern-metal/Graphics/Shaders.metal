@@ -93,11 +93,13 @@ fragment float4 fragment_main(VertexOut fragmentIn [[stage_in]],
                               texture2d<float, access::sample> baseColorTexture [[texture(2)]],
                               sampler textureSampler [[sampler(0)]])
 {
-    float worldDepth = depthTexture.sample(textureSampler, fragmentIn.camCoords).a;
+    float worldDepth = depthTexture.sample(textureSampler, fragmentIn.camCoords).r;
 
-    if (worldDepth < fragmentIn.worldPosition.z) {
+//    if (worldDepth < (-fragmentIn.worldPosition.z / 10)) {
+//    if (worldDepth < 0.1) {
+    if (true) {
         // Sample Camera Texture
-        float3 imageColor = imageTexture.sample(textureSampler, fragmentIn.camCoords).rgb;
+        float3 imageColor = depthTexture.sample(textureSampler, fragmentIn.camCoords).rgb;
         return float4(imageColor, 1.0);
     }
 

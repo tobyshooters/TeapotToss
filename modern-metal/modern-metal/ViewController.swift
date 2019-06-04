@@ -2,6 +2,7 @@
 import UIKit
 import MetalKit
 import ModelIO
+import AVFoundation
 
 class ViewController: UIViewController, AVCaptureDataOutputSynchronizerDelegate {
     
@@ -95,7 +96,7 @@ class ViewController: UIViewController, AVCaptureDataOutputSynchronizerDelegate 
         if avSession.canAddOutput(depthDataOutput) {
             // Map output to callback
             avSession.addOutput(depthDataOutput)
-            depthDataOutput.isFilteringEnabled = false
+            depthDataOutput.isFilteringEnabled = true
             if let connection = depthDataOutput.connection(with: .depthData) {
                 connection.isEnabled = true
             } else {
@@ -142,9 +143,32 @@ class ViewController: UIViewController, AVCaptureDataOutputSynchronizerDelegate 
             synchronizedDataCollection.synchronizedData(for: videoDataOutput) as? AVCaptureSynchronizedSampleBufferData else { return }
         
         if synchedDepthData.depthDataWasDropped || synchedVideoData.sampleBufferWasDropped { return }
-        
-        renderer.depthPixelBuffer = synchedDepthData.depthData.depthDataMap
+
+        // print(data.depthDataType) => kCVPixelFormatType_DepthFloat16
+        let data: AVDepthData = synchedDepthData.depthData.convertToDepth()
+        renderer.depthPixelBuffer = data.depthDataMap
         renderer.videoPixelBuffer = CMSampleBufferGetImageBuffer(synchedVideoData.sampleBuffer)
+
+        if let depthPixelBuffer = renderer.depthPixelBuffer {
+            if let videoPixelBuffer = renderer.videoPixelBuffer {
+
+                let videoWidth = CVPixelBufferGetWidth(videoPixelBuffer)
+                let depthWidth = CVPixelBufferGetWidth(depthPixelBuffer)
+                let scale = CGFloat(depthWidth) / CGFloat(videoWidth)
+
+                let pixelX = Int((10 * scale).rounded());
+                let pixelY = Int((10 * scale).rounded());
+
+                CVPixelBufferLockBaseAddress(depthPixelBuffer, .readOnly)
+
+                let baseAddress = CVPixelBufferGetBaseAddress(depthPixelBuffer)!
+                let bytesPerRow = CVPixelBufferGetBytesPerRow(depthPixelBuffer)
+                let buffer = baseAddress.assumingMemoryBound(to: Float32.self)
+                print(buffer[pixelX * bytesPerRow + pixelY])
+
+                CVPixelBufferUnlockBaseAddress(depthPixelBuffer, .readOnly)
+            }
+        }
         
         print("got the data!")
     }

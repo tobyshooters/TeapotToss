@@ -19,6 +19,8 @@
 		83EDDBE220FEE107006CE50F /* bob.obj in Resources */ = {isa = PBXBuildFile; fileRef = 83EDDBE020FEE107006CE50F /* bob.obj */; };
 		83EDDBE320FEE107006CE50F /* blub.obj in Resources */ = {isa = PBXBuildFile; fileRef = 83EDDBE120FEE107006CE50F /* blub.obj */; };
 		83EDDBE520FEE4BE006CE50F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 83EDDBE420FEE4BE006CE50F /* Assets.xcassets */; };
+		F2E59C0D22A5D870005B9C3C /* Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2E59C0C22A5D870005B9C3C /* Extensions.swift */; };
+		F2E59C1022A5DD26005B9C3C /* Distortion.m in Sources */ = {isa = PBXBuildFile; fileRef = F2E59C0F22A5DD26005B9C3C /* Distortion.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -36,6 +38,10 @@
 		83EDDBE020FEE107006CE50F /* bob.obj */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = bob.obj; sourceTree = "<group>"; };
 		83EDDBE120FEE107006CE50F /* blub.obj */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = blub.obj; sourceTree = "<group>"; };
 		83EDDBE420FEE4BE006CE50F /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		F2E59C0C22A5D870005B9C3C /* Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Extensions.swift; sourceTree = "<group>"; };
+		F2E59C0E22A5DD25005B9C3C /* modern-metal-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "modern-metal-Bridging-Header.h"; sourceTree = "<group>"; };
+		F2E59C0F22A5DD26005B9C3C /* Distortion.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = Distortion.m; sourceTree = "<group>"; };
+		F2E59C1122A5DE8C005B9C3C /* Distortion.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Distortion.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -68,21 +74,49 @@
 		83697CD720F4E96400B4C2A6 /* modern-metal */ = {
 			isa = PBXGroup;
 			children = (
-				83EDDBE120FEE107006CE50F /* blub.obj */,
-				83EDDBE020FEE107006CE50F /* bob.obj */,
-				83697CEC20F4EDDD00B4C2A6 /* teapot.obj */,
-				83EDDBDC20FC8A44006CE50F /* Scene.swift */,
+				F2E59C1422A5E13A005B9C3C /* Objects */,
+				F2E59C1322A5E119005B9C3C /* Graphics */,
 				83697CD820F4E96400B4C2A6 /* AppDelegate.swift */,
-				83697CF020F4F7A400B4C2A6 /* MathUtilities.swift */,
-				83697CEA20F4EB7500B4C2A6 /* Renderer.swift */,
 				83697CDA20F4E96400B4C2A6 /* ViewController.swift */,
-				83697CEE20F4F42B00B4C2A6 /* Shaders.metal */,
+				F2E59C1222A5E0C8005B9C3C /* Distortion */,
 				83697CDC20F4E96400B4C2A6 /* Main.storyboard */,
 				83697CE120F4E96500B4C2A6 /* LaunchScreen.storyboard */,
 				83EDDBE420FEE4BE006CE50F /* Assets.xcassets */,
+				F2E59C0E22A5DD25005B9C3C /* modern-metal-Bridging-Header.h */,
 				83697CE420F4E96500B4C2A6 /* Info.plist */,
 			);
 			path = "modern-metal";
+			sourceTree = "<group>";
+		};
+		F2E59C1222A5E0C8005B9C3C /* Distortion */ = {
+			isa = PBXGroup;
+			children = (
+				F2E59C0F22A5DD26005B9C3C /* Distortion.m */,
+				F2E59C1122A5DE8C005B9C3C /* Distortion.h */,
+			);
+			path = Distortion;
+			sourceTree = "<group>";
+		};
+		F2E59C1322A5E119005B9C3C /* Graphics */ = {
+			isa = PBXGroup;
+			children = (
+				83697CEA20F4EB7500B4C2A6 /* Renderer.swift */,
+				83697CEE20F4F42B00B4C2A6 /* Shaders.metal */,
+				83EDDBDC20FC8A44006CE50F /* Scene.swift */,
+				83697CF020F4F7A400B4C2A6 /* MathUtilities.swift */,
+				F2E59C0C22A5D870005B9C3C /* Extensions.swift */,
+			);
+			path = Graphics;
+			sourceTree = "<group>";
+		};
+		F2E59C1422A5E13A005B9C3C /* Objects */ = {
+			isa = PBXGroup;
+			children = (
+				83EDDBE120FEE107006CE50F /* blub.obj */,
+				83697CEC20F4EDDD00B4C2A6 /* teapot.obj */,
+				83EDDBE020FEE107006CE50F /* bob.obj */,
+			);
+			path = Objects;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -117,7 +151,7 @@
 				TargetAttributes = {
 					83697CD420F4E96400B4C2A6 = {
 						CreatedOnToolsVersion = 9.4.1;
-						LastSwiftMigration = 1000;
+						LastSwiftMigration = 1020;
 					};
 				};
 			};
@@ -166,6 +200,8 @@
 				83697CEB20F4EB7500B4C2A6 /* Renderer.swift in Sources */,
 				83697CD920F4E96400B4C2A6 /* AppDelegate.swift in Sources */,
 				83697CF120F4F7A400B4C2A6 /* MathUtilities.swift in Sources */,
+				F2E59C1022A5DD26005B9C3C /* Distortion.m in Sources */,
+				F2E59C0D22A5D870005B9C3C /* Extensions.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -309,15 +345,18 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = 65KPJJQGJS;
+				DEVELOPMENT_TEAM = NQR666YK5T;
 				INFOPLIST_FILE = "modern-metal/Info.plist";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = "ee267.modern-metal";
+				PRODUCT_BUNDLE_IDENTIFIER = ee267.fuckthepolice;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_OBJC_BRIDGING_HEADER = "modern-metal/modern-metal-Bridging-Header.h";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 4.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
@@ -327,15 +366,17 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = 65KPJJQGJS;
+				DEVELOPMENT_TEAM = NQR666YK5T;
 				INFOPLIST_FILE = "modern-metal/Info.plist";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = "ee267.modern-metal";
+				PRODUCT_BUNDLE_IDENTIFIER = ee267.fuckthepolice;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_OBJC_BRIDGING_HEADER = "modern-metal/modern-metal-Bridging-Header.h";
 				SWIFT_VERSION = 4.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
