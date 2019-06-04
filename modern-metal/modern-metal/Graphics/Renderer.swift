@@ -89,14 +89,6 @@ class Renderer: NSObject, MTKViewDelegate {
         bob.mesh = try! MTKMesh.newMeshes(asset: bobAsset, device: device).metalKitMeshes.first!
         
         scene.rootNode.children.append(bob)
-        
-//        // NOT SURE IF THIS IS ESSENTIAL
-//        guard let attributes = vertexDescriptor.attributes as? [MDLVertexAttribute] else {
-//            return scene
-//        }
-//        attributes[0].name = MDLVertexAttributePosition
-//        attributes[2].name = MDLVertexAttributeTextureCoordinate
-
         return scene
     }
     
