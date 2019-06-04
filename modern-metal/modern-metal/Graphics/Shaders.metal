@@ -47,6 +47,7 @@ struct VertexOut {
     float3 worldNormal;
     float3 worldPosition;
     float2 texCoords;
+    float2 camCoords;
 };
 
 struct Light {
@@ -76,18 +77,31 @@ vertex VertexOut vertex_main(VertexIn vertexIn [[stage_in]],
     VertexOut vertexOut;
     float4 worldPosition = uniforms.modelMatrix * float4(vertexIn.position, 1);
     vertexOut.position = uniforms.viewProjectionMatrix * worldPosition;
+
     vertexOut.worldPosition = worldPosition.xyz;
     vertexOut.worldNormal = uniforms.normalMatrix * vertexIn.normal;
     vertexOut.texCoords = vertexIn.texCoords;
+    vertexOut.camCoords = (float2(0.5, -0.5) * (vertexOut.position.xy / vertexOut.position.w)) + float2(0.5, 0.5);
+
     return vertexOut;
 }
 
 fragment float4 fragment_main(VertexOut fragmentIn [[stage_in]],
                               constant FragmentUniforms &uniforms [[buffer(0)]],
-                              texture2d<float, access::sample> baseColorTexture [[texture(0)]],
-                              sampler baseColorSampler [[sampler(0)]])
+                              texture2d<float, access::sample> imageTexture [[texture(0)]],
+                              texture2d<float, access::sample> depthTexture [[texture(1)]],
+                              texture2d<float, access::sample> baseColorTexture [[texture(2)]],
+                              sampler textureSampler [[sampler(0)]])
 {
-    float3 baseColor = baseColorTexture.sample(baseColorSampler, fragmentIn.texCoords).rgb;
+    float worldDepth = depthTexture.sample(textureSampler, fragmentIn.camCoords).a;
+
+    if (worldDepth < fragmentIn.worldPosition.z) {
+        // Sample Camera Texture
+        float3 imageColor = imageTexture.sample(textureSampler, fragmentIn.camCoords).rgb;
+        return float4(imageColor, 1.0);
+    }
+
+    float3 baseColor = baseColorTexture.sample(textureSampler, fragmentIn.camCoords).rgb;
     float3 specularColor = uniforms.specularColor;
     
     float3 N = normalize(fragmentIn.worldNormal);
@@ -105,5 +119,6 @@ fragment float4 fragment_main(VertexOut fragmentIn [[stage_in]],
                       diffuseIntensity * lightColor * baseColor +
                       specularIntensity * lightColor * specularColor;
     }
+
     return float4(finalColor, 1);
 }

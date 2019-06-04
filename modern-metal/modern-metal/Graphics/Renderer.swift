@@ -35,6 +35,8 @@ class Renderer: NSObject, MTKViewDelegate {
     var projectionMatrix = matrix_identity_float4x4
     
     var textureCache: CVMetalTextureCache!
+    var depthTextureCache: CVMetalTextureCache!
+
     var videoPixelBuffer : CVPixelBuffer?
     var depthPixelBuffer : CVPixelBuffer?
 
@@ -56,6 +58,7 @@ class Renderer: NSObject, MTKViewDelegate {
         super.init()
 
         if CVMetalTextureCacheCreate(kCFAllocatorDefault, nil, device, nil, &textureCache) != kCVReturnSuccess { return }
+        if CVMetalTextureCacheCreate(kCFAllocatorDefault, nil, device, nil, &depthTextureCache) != kCVReturnSuccess { return }
     }
     
     static func buildScene(device: MTLDevice, vertexDescriptor: MDLVertexDescriptor, view: MTKView) -> Scene {
@@ -74,10 +77,8 @@ class Renderer: NSObject, MTKViewDelegate {
         // Teapot
         let bob = Node(name: "Bob")
         let bobMaterial = Material()
-        let bobBaseColorTexture = try? textureLoader.newTexture(name: "bob_baseColor",
-                                                                scaleFactor: 1.0,
-                                                                bundle: nil,
-                                                                options: options)
+        let bobBaseColorTexture =
+            try? textureLoader.newTexture(name: "bob_baseColor", scaleFactor: 1.0, bundle: nil, options: options)
         bobMaterial.baseColorTexture = bobBaseColorTexture
         bobMaterial.specularPower = 100
         bobMaterial.specularColor = float3(0.8, 0.8, 0.8)
@@ -88,33 +89,13 @@ class Renderer: NSObject, MTKViewDelegate {
         bob.mesh = try! MTKMesh.newMeshes(asset: bobAsset, device: device).metalKitMeshes.first!
         
         scene.rootNode.children.append(bob)
-
-        // Canvas
-        let canvas = Node(name: "Canvas")
-        let canvasMaterial = Material()
-        let canvasBaseColorTexture = try? textureLoader.newTexture(name: "blub_baseColor",
-                                                                   scaleFactor: 1.0,
-                                                                   bundle: nil,
-                                                                   options: options)
-        canvasMaterial.baseColorTexture = canvasBaseColorTexture
-        canvasMaterial.specularPower = 100
-        canvasMaterial.specularColor = float3(0.8, 0.8, 0.8)
-        canvas.material = canvasMaterial
-        let mdlMesh = MDLMesh.newPlane(withDimensions: float2(1, 1),
-                                       segments: uint2(1, 1),
-                                       geometryType: MDLGeometryType.triangles,
-                                       allocator: bufferAllocator)
         
-        guard let attributes = vertexDescriptor.attributes as? [MDLVertexAttribute] else {
-            return scene
-        }
-        
-        attributes[0].name = MDLVertexAttributePosition
-        attributes[2].name = MDLVertexAttributeTextureCoordinate
-        
-        mdlMesh.vertexDescriptor = vertexDescriptor
-        canvas.mesh = try! MTKMesh(mesh:mdlMesh, device:device)
-        scene.rootNode.children.append(canvas)
+//        // NOT SURE IF THIS IS ESSENTIAL
+//        guard let attributes = vertexDescriptor.attributes as? [MDLVertexAttribute] else {
+//            return scene
+//        }
+//        attributes[0].name = MDLVertexAttributePosition
+//        attributes[2].name = MDLVertexAttributeTextureCoordinate
 
         return scene
     }
@@ -211,14 +192,8 @@ class Renderer: NSObject, MTKViewDelegate {
         let aspectRatio = Float(view.drawableSize.width / view.drawableSize.height)
         projectionMatrix = float4x4(perspectiveProjectionFov: Float.pi / 6, aspectRatio: aspectRatio, nearZ: 0.1, farZ: 100)
         
-        let angle = -time
-        
         if let bob = scene.nodeNamed("Bob") {
-            bob.modelMatrix = float4x4(translationBy: float3(0, angle, -5))
-        }
-        
-        if let canvas = scene.nodeNamed("Canvas") {
-            canvas.modelMatrix = float4x4(translationBy: float3(0, 0, -10)) * float4x4(rotationAbout: float3(1.0, 0, 0), by: Float.pi / 2)
+            bob.modelMatrix = float4x4(translationBy: float3(0, 0, -5))
         }
     }
     
@@ -234,15 +209,26 @@ class Renderer: NSObject, MTKViewDelegate {
             let commandEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: renderPassDescriptor)!
             commandEncoder.setFrontFacing(.counterClockwise)
 
-            // Draw Camera
-            commandEncoder.setCullMode(.none)
-            commandEncoder.setRenderPipelineState(cameraPipeline)
-
-            if let buffer = videoPixelBuffer,let imageTexture = textureFromBuffer(buffer: buffer) {
+            // Set fragments
+            if let buffer = videoPixelBuffer,
+               let imageTexture = textureFromBuffer(buffer: buffer, textureCache: textureCache)
+            {
                 commandEncoder.setFragmentTexture(imageTexture, index: 0)
             } else {
                 commandEncoder.setFragmentTexture(scene.rootNode.children[0].material.baseColorTexture, index: 0)
             }
+
+            if let buffer = depthPixelBuffer,
+               let imageTexture = textureFromBuffer(buffer: buffer, textureCache: depthTextureCache, pixelFormat: .a8Unorm)
+            {
+                commandEncoder.setFragmentTexture(imageTexture, index: 1)
+            } else {
+                commandEncoder.setFragmentTexture(scene.rootNode.children[0].material.baseColorTexture, index: 1)
+            }
+
+            // Draw Camera
+            commandEncoder.setCullMode(.none)
+            commandEncoder.setRenderPipelineState(cameraPipeline)
             commandEncoder.drawPrimitives(type: .triangleStrip, vertexStart: 0, vertexCount: 4)
 
             // Draw Graphics
@@ -276,9 +262,9 @@ class Renderer: NSObject, MTKViewDelegate {
                                                     light0: scene.lights[0],
                                                     light1: scene.lights[1],
                                                     light2: scene.lights[2])
+            
             commandEncoder.setFragmentBytes(&fragmentUniforms, length: MemoryLayout<FragmentUniforms>.size, index: 0)
-
-            commandEncoder.setFragmentTexture(baseColorTexture, index: 0)
+            commandEncoder.setFragmentTexture(baseColorTexture, index: 2)
 
             let vertexBuffer = mesh.vertexBuffers.first!
             commandEncoder.setVertexBuffer(vertexBuffer.buffer, offset: vertexBuffer.offset, index: 0)
@@ -299,6 +285,7 @@ class Renderer: NSObject, MTKViewDelegate {
     }
 
     private func textureFromBuffer(buffer : CVPixelBuffer,
+                                   textureCache : CVMetalTextureCache,
                                    planeIndex : Int = 0,
                                    pixelFormat : MTLPixelFormat = .bgra8Unorm) -> MTLTexture? {
         
