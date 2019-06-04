@@ -2,6 +2,8 @@
 
 ![](https://media.giphy.com/media/LVsF3VQGjSWV52IKgn/source.mp4)
 
+Uses: <https://github.com/metal-by-example/modern-metal> as template
+
 ### What we wanted to do
 
 AR occlusion using the iPhone depth sensing
