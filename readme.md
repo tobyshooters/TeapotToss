@@ -3,7 +3,7 @@ Extract image and depth buffer from `AVCaptureSession` and pass into Metal shade
 
 ![](https://media.giphy.com/media/LVsF3VQGjSWV52IKgn/giphy.gif)
 
-Uses: <https://github.com/metal-by-example/modern-metal> as template
+Metal template: <github.com/metal-by-example/modern-metal>
 
 ### What we wanted to do
 
