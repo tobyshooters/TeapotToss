@@ -1,8 +1,12 @@
-#What we wanted to do
+# AR Occlusion in Metal
 
-AR occlusion using the iphone depth sensing
+![](https://media.giphy.com/media/LVsF3VQGjSWV52IKgn/source.mp4)
 
-#What we tried
+### What we wanted to do
+
+AR occlusion using the iPhone depth sensing
+
+### What we tried
 
 - Started an ARKit app, implemented occusion
     - Implemented occlusion by passing camera as texture to fragment shader and writing as object color
