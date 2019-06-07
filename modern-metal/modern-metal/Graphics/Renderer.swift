@@ -83,7 +83,8 @@ class Renderer: NSObject, MTKViewDelegate {
         let light2 = Light(worldPosition: float3( 0, -5, 0), color: float3(0.3, 0.3, 0.3))
         scene.lights = [ light0, light1, light2 ]
 
-        // Teapot
+        // Teapot. We call him bob
+        // -----------------------
         let bob = Node(name: "Bob")
         let bobMaterial = Material()
         let bobBaseColorTexture =
@@ -183,6 +184,10 @@ class Renderer: NSObject, MTKViewDelegate {
         }
     }
     
+    // Called when a tap gesture is detected.
+    // Sets inital velocity if Bob is at the starting position,
+    // or resets bob's position if at final position.
+    // --------------------------------------------------------
     func toss() {
         if (bob_x == bob_x0) {
             v_x = -3;
@@ -191,6 +196,20 @@ class Renderer: NSObject, MTKViewDelegate {
         } else {
             bob_x = bob_x0;
             bob_y = bob_y0;
+        }
+    }
+    
+    // Updates bob's position according to ballistic motion equation
+    // -------------------------------------------------------------
+    func moveInParabola (deltaT: Float) {
+        if (v_x != 0) {
+            bob_x = bob_x0 + v_x * deltaT
+            bob_y = bob_y0 + v_y * deltaT + g * deltaT * deltaT
+            
+            if (bob_y < bob_y0) {
+                v_x = 0
+                v_y = 0
+            }
         }
     }
     
@@ -203,20 +222,8 @@ class Renderer: NSObject, MTKViewDelegate {
         let aspectRatio = Float(view.drawableSize.width / view.drawableSize.height)
         projectionMatrix = float4x4(perspectiveProjectionFov: Float.pi / 6, aspectRatio: aspectRatio, nearZ: 0.1, farZ: 100)
         
-        // depth ranges from -3 to -7.0499964
         let deltaT: Float = time - startTime
-        if (v_x != 0) {
-            bob_x = bob_x0 + v_x * deltaT
-            bob_y = bob_y0 + v_y * deltaT + g * deltaT * deltaT
-            
-            if (bob_y < bob_y0) {
-                v_x = 0
-                v_y = 0
-                print(bob_x)
-            }
-        }
-        
-        
+        moveInParabola(deltaT: deltaT)
         
         if let bob = scene.nodeNamed("Bob") {
             bob.modelMatrix = float4x4(translationBy: float3(0, bob_y, bob_x)) * float4x4(rotationAbout: float3(1, 0, 0), by: Float.pi/6) * float4x4(rotationAbout: float3(0.5, 1, 0), by: -time)
@@ -235,7 +242,8 @@ class Renderer: NSObject, MTKViewDelegate {
             let commandEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: renderPassDescriptor)!
             commandEncoder.setFrontFacing(.counterClockwise)
 
-            // Set fragments
+            // Passes video feed as texture to shader
+            // --------------------------------------
             if let buffer = videoPixelBuffer,
                let imageTexture = textureFromBuffer(buffer: buffer, textureCache: textureCache)
             {
@@ -244,6 +252,8 @@ class Renderer: NSObject, MTKViewDelegate {
                 commandEncoder.setFragmentTexture(scene.rootNode.children[0].material.baseColorTexture, index: 0)
             }
 
+            // Passes depth map as texture to shader
+            // -------------------------------------
             if let buffer = depthPixelBuffer,
                let imageTexture = textureFromBuffer(buffer: buffer, textureCache: depthTextureCache, pixelFormat: .r16Unorm)
             {
@@ -288,7 +298,7 @@ class Renderer: NSObject, MTKViewDelegate {
                                                     light0: scene.lights[0],
                                                     light1: scene.lights[1],
                                                     light2: scene.lights[2],
-                                                    bob_z: ((-bob_x - 3) / 4.1) / 5 + 0.4
+                                                    bob_z: ((-bob_x - 3) / 4.1) / 5 + 0.4 // Scaled to be between 0 and 1
                                                    )
             
             print(((-bob_x - 3) / 4.1) / 5 + 0.4 )

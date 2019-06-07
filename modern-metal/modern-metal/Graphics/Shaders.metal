@@ -102,6 +102,7 @@ fragment float4 fragment_main(VertexOut fragmentIn [[stage_in]],
                               texture2d<float, access::sample> baseColorTexture [[texture(2)]],
                               sampler textureSampler [[sampler(0)]])
 {
+    // 
     float worldDepth = depthTexture.sample(textureSampler, fragmentIn.camCoords).r;
     float scaledDepth = clamp(3 * worldDepth, 0, 1);
     float depth = floor(10 * scaledDepth) / 10;
@@ -110,6 +111,9 @@ fragment float4 fragment_main(VertexOut fragmentIn [[stage_in]],
     
     float3 baseColor;
 
+    // Occlusion check
+    // ---------------
+    // Chooses to color teapot either based on lights or from camera texture conditionally on a depth test
     if (depth > bob_z) {
         baseColor = baseColorTexture.sample(textureSampler, fragmentIn.camCoords).rgb;
     } else {
