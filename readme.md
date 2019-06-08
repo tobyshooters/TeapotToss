@@ -1,7 +1,7 @@
 # iOS AR Occlusion in Metal
 Extract image and depth buffer from `AVCaptureSession` and pass into Metal shader as texture.
 
-Project Report available at `/docs/report.pdf`
+Project Report available at `report.pdf`
 
 ### Basic Occlusion
 ![](https://media.giphy.com/media/LVsF3VQGjSWV52IKgn/giphy.gif)
@@ -26,5 +26,6 @@ To run:
 2. `git clone https://github.com/tobyshooters/TeapotToss.git` in the desired directory
 2. Connect phone to computer
 3. Open `modern-metal.xcodeproj` file in XCode
-4. Target connected iPhone
-5. Click on build and run button
+4. Change the project team to your own personal team
+5. Target connected iPhone 
+6. Click on build and run button
